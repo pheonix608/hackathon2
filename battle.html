@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NITRO | BATTLE ARENA</title>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --p1-color: #ff2a2a; /* Neon Red */
+            --p2-color: #00ff88; /* Neon Green */
+            --gold: #f1c40f;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Courier New', monospace; }
+
+        body {
+            background-color: var(--bg-color);
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* --- 1. HUD (Heads Up Display) --- */
+        .hud {
+            position: absolute;
+            top: 20px;
+            width: 90%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .health-box {
+            width: 40%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .health-bar-bg {
+            width: 100%;
+            height: 30px;
+            background: #333;
+            border: 3px solid #fff;
+            transform: skewX(-20deg);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .health-fill {
+            height: 100%;
+            width: 100%; /* JS will change this */
+            transition: width 0.2s cubic-bezier(0.1, 0.7, 1.0, 0.1);
+        }
+
+        .p1-fill { background: linear-gradient(90deg, #ff9966, var(--p1-color)); box-shadow: 0 0 20px var(--p1-color); }
+        .p2-fill { background: linear-gradient(90deg, var(--p2-color), #00cc66); box-shadow: 0 0 20px var(--p2-color); float: right; }
+
+        .name-tag {
+            font-size: 1.5rem;
+            font-weight: 900;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .timer {
+            font-size: 4rem;
+            font-weight: 900;
+            color: var(--gold);
+            text-shadow: 0 0 10px var(--gold);
+        }
+
+        /* --- 2. THE ARENA --- */
+        .arena-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            perspective: 1200px;
+            overflow: hidden;
+        }
+
+        /* Moving Grid Floor */
+        .floor {
+            position: absolute;
+            bottom: -30%;
+            left: -50%;
+            width: 200%;
+            height: 100%;
+            background: 
+                linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 60px 60px;
+            transform: rotateX(70deg);
+            animation: moveFloor 5s linear infinite;
+            z-index: 0;
+            mask-image: linear-gradient(to top, black, transparent 80%);
+        }
+
+        @keyframes moveFloor { from { transform: rotateX(70deg) translateY(0); } to { transform: rotateX(70deg) translateY(60px); } }
+
+        /* --- 3. FIGHTERS --- */
+        .fighter-wrapper {
+            position: absolute;
+            bottom: 50px;
+            width: 500px;
+            height: 700px;
+            transition: transform 0.1s; /* For hit shake */
+        }
+
+        .fighter-wrapper video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            mix-blend-mode: screen; /* Removes black bg */
+        }
+
+        #p1-wrapper {
+            left: 5%;
+            transform: translateX(-150%); /* Start off-screen */
+            filter: drop-shadow(0 0 15px var(--p1-color));
+        }
+
+        #p2-wrapper {
+            right: 5%;
+            transform: translateX(150%); /* Start off-screen */
+            filter: drop-shadow(0 0 15px var(--p2-color)) hue-rotate(180deg); /* Make Green */
+        }
+        #p2-wrapper video { transform: scaleX(-1); /* Flip face left */ }
+
+        /* Entrance Animations */
+        .slide-in-left { animation: slideLeft 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .slide-in-right { animation: slideRight 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        @keyframes slideLeft { to { transform: translateX(0); } }
+        @keyframes slideRight { to { transform: translateX(0); } }
+
+        /* --- 4. OVERLAYS (ROUND 1 / FIGHT) --- */
+        .overlay-text {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            font-size: 8rem;
+            font-weight: 900;
+            font-style: italic;
+            text-transform: uppercase;
+            color: #fff;
+            text-shadow: 5px 5px 0px #000, 0 0 50px white;
+            z-index: 500;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .anim-pop { animation: popText 0.8s forwards; }
+        .anim-fight { animation: fightShake 0.5s infinite; color: var(--p1-color); }
+
+        @keyframes popText {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            60% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+
+        @keyframes fightShake {
+            0% { transform: translate(-52%, -52%) rotate(-5deg); }
+            50% { transform: translate(-48%, -48%) rotate(5deg); }
+            100% { transform: translate(-50%, -50%) rotate(0deg); }
+        }
+
+        /* --- 5. VOTING BUTTONS --- */
+        .vote-dock {
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 100px;
+            z-index: 200;
+            opacity: 0; /* Hidden until fight starts */
+            transition: opacity 0.5s;
+        }
+
+        .super-btn {
+            background: rgba(0,0,0,0.6);
+            border: 3px solid #fff;
+            color: #fff;
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            cursor: pointer;
+            transform: skewX(-20deg);
+            transition: 0.1s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .super-btn span { display: block; transform: skewX(20deg); } /* Un-skew text */
+        
+        .btn-p1:hover { background: var(--p1-color); box-shadow: 0 0 30px var(--p1-color); border-color: var(--p1-color); }
+        .btn-p2:hover { background: var(--p2-color); box-shadow: 0 0 30px var(--p2-color); border-color: var(--p2-color); }
+
+        .super-btn:active { transform: skewX(-20deg) scale(0.95); }
+
+        /* HIT FLASH */
+        .flash-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: white; opacity: 0; pointer-events: none; z-index: 999;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="flash-overlay" id="flash"></div>
+
+    <div class="hud">
+        <div class="health-box">
+            <div class="name-tag" style="color: var(--p1-color);">NIT WARANGAL</div>
+            <div class="health-bar-bg"><div class="health-fill p1-fill" id="hp-p1"></div></div>
+        </div>
+
+        <div class="timer">99</div>
+
+        <div class="health-box" style="text-align: right; align-items: flex-end;">
+            <div class="name-tag" style="color: var(--p2-color);">NIT SURATHKAL</div>
+            <div class="health-bar-bg"><div class="health-fill p2-fill" id="hp-p2"></div></div>
+        </div>
+    </div>
+
+    <div class="arena-container" id="arena">
+        <div class="floor"></div>
+
+        <div class="fighter-wrapper" id="p1-wrapper">
+             <video autoplay loop muted playsinline><source src="http://googleusercontent.com/generated_video_content/1966854394263473833" type="video/mp4"></video>
+        </div>
+        
+        <div class="fighter-wrapper" id="p2-wrapper">
+             <video autoplay loop muted playsinline><source src="http://googleusercontent.com/generated_video_content/1966854394263473833" type="video/mp4"></video>
+        </div>
+
+        <div class="overlay-text" id="announcer">ROUND 1</div>
+    </div>
+
+    <div class="vote-dock" id="controls">
+        <button class="super-btn btn-p1" onclick="attack('p1')"><span>VOTE WARANGAL</span></button>
+        <button class="super-btn btn-p2" onclick="attack('p2')"><span>VOTE SURATHKAL</span></button>
+    </div>
+
+    <script>
+        // --- GAME STATE ---
+        let p1Health = 100;
+        let p2Health = 100;
+        let gameActive = false;
+
+        window.onload = function() {
+            startSequence();
+        };
+
+        function startSequence() {
+            const p1 = document.getElementById('p1-wrapper');
+            const p2 = document.getElementById('p2-wrapper');
+            const txt = document.getElementById('announcer');
+            const ctrls = document.getElementById('controls');
+
+            // 1. Fighters Enter (0.5s)
+            setTimeout(() => { p1.classList.add('slide-in-left'); }, 500);
+            setTimeout(() => { p2.classList.add('slide-in-right'); }, 1000);
+
+            // 2. "ROUND 1" (2.0s)
+            setTimeout(() => {
+                txt.classList.add('anim-pop');
+                txt.innerText = "ROUND 1";
+            }, 2000);
+
+            // 3. "FIGHT!" (3.5s)
+            setTimeout(() => {
+                txt.classList.remove('anim-pop');
+                void txt.offsetWidth; // Trigger reflow
+                txt.innerText = "FIGHT!!";
+                txt.style.opacity = 1;
+                txt.style.transform = "translate(-50%, -50%) scale(1)";
+                txt.classList.add('anim-fight');
+                
+                // Show buttons
+                ctrls.style.opacity = 1;
+                gameActive = true;
+            }, 3500);
+
+            // 4. Clear Text (5.0s)
+            setTimeout(() => {
+                txt.style.display = 'none';
+            }, 5000);
+        }
+
+        function attack(attacker) {
+            if(!gameActive) return;
+
+            // Who gets hit?
+            const victim = attacker === 'p1' ? 'p2' : 'p1';
+            const victimEl = document.getElementById(`${victim}-wrapper`);
+            const hpBar = document.getElementById(`hp-${victim}`);
+            
+            // 1. Shake the victim
+            victimEl.style.transform = attacker === 'p1' 
+                ? "translateX(150%) rotate(5deg)"  // if p2 is hit
+                : "translateX(-150%) rotate(-5deg)"; // if p1 is hit
+            
+            setTimeout(() => {
+                // Reset position
+                victimEl.style.transform = attacker === 'p1' ? "translateX(150%)" : "translateX(-150%)";
+            }, 100);
+
+            // 2. Reduce Health
+            const damage = 15;
+            if(victim === 'p1') p1Health -= damage;
+            else p2Health -= damage;
+
+            // Clamp to 0
+            if(p1Health < 0) p1Health = 0;
+            if(p2Health < 0) p2Health = 0;
+
+            // Update UI
+            hpBar.style.width = `${victim === 'p1' ? p1Health : p2Health}%`;
+
+            // 3. Screen Flash
+            const flash = document.getElementById('flash');
+            flash.style.opacity = 0.5;
+            setTimeout(() => { flash.style.opacity = 0; }, 50);
+
+            // 4. Check KO
+            if(p1Health <= 0 || p2Health <= 0) {
+                endGame(attacker);
+            }
+        }
+
+        function endGame(winner) {
+            gameActive = false;
+            const txt = document.getElementById('announcer');
+            txt.style.display = 'block';
+            txt.classList.remove('anim-fight');
+            txt.style.fontSize = "6rem";
+            
+            const winnerName = winner === 'p1' ? "WARANGAL" : "SURATHKAL";
+            txt.innerText = `${winnerName} WINS!`;
+            txt.classList.add('anim-pop');
+            
+            // Hide loser
+            const loser = winner === 'p1' ? 'p2' : 'p1';
+            document.getElementById(`${loser}-wrapper`).style.opacity = 0;
+
+            setTimeout(() => {
+                alert("Match Recorded! Redirecting to grid...");
+                window.location.href = "index.html";
+            }, 3000);
+        }
+
+    </script>
+</body>
+</html>

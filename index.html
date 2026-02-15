@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NITRO | Access Portal</title>
+    <style>
+        :root {
+            --bg-color: #f3f4f6;
+            --primary: #000;
+            --accent: #6c5ce7; /* NIT Purple */
+            --accent-2: #00cec9; /* Cyber Blue */
+            --alert: #ff7675;   /* Error Red */
+            --success: #00b894;
+            --white: #fff;
+            --shadow: 8px 8px 0px #000;
+            --border: 3px solid #000;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Courier New', monospace;
+        }
+
+        body {
+            background-color: var(--accent);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* --- BACKGROUND NIT ANIMATION --- */
+        .nit-bg-container {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .floating-nit {
+            position: absolute;
+            font-weight: 900;
+            font-size: 4rem;
+            opacity: 0.1;
+            color: #fff;
+            white-space: nowrap;
+            animation: float 15s linear infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(110vh) rotate(0deg); }
+            100% { transform: translateY(-20vh) rotate(10deg); }
+        }
+
+        /* --- MAIN CARD --- */
+        .container {
+            background-color: var(--white);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            border: var(--border);
+            position: relative;
+            overflow: hidden;
+            width: 900px;
+            max-width: 95%;
+            min-height: 600px;
+            z-index: 10;
+        }
+
+        .form-container {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            transition: all 0.6s ease-in-out;
+            padding: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-y: auto; 
+        }
+
+        form {
+            background-color: var(--white);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            width: 100%;
+            text-align: center;
+        }
+
+        /* SCROLLBAR HIDING */
+        .form-container::-webkit-scrollbar { width: 0px; }
+
+        /* SIGN IN & SIGN UP POSITIONS */
+        .sign-in-container { left: 0; width: 50%; z-index: 2; }
+        .sign-up-container { left: 0; width: 50%; opacity: 0; z-index: 1; }
+
+        h1 { font-weight: 900; margin-bottom: 10px; font-size: 2rem; text-transform: uppercase; }
+        span { font-size: 12px; margin-bottom: 20px; display: block; }
+
+        input {
+            background-color: #eee;
+            border: 2px solid #000;
+            padding: 12px 15px;
+            margin: 8px 0;
+            width: 100%;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        input:focus {
+            background-color: #fff;
+            box-shadow: 4px 4px 0px var(--accent-2);
+            transform: translate(-2px, -2px);
+        }
+
+        /* EXTRA FIELDS (Guest Mode) */
+        #external-fields {
+            display: none; 
+            width: 100%;
+            border-top: 2px dashed #ccc;
+            margin-top: 10px;
+            padding-top: 10px;
+            animation: slideDown 0.5s ease;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        button {
+            border-radius: 50px;
+            border: 2px solid #000;
+            background-color: var(--primary);
+            color: #fff;
+            font-size: 12px;
+            font-weight: bold;
+            padding: 12px 45px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: transform 80ms ease-in;
+            cursor: pointer;
+            margin-top: 15px;
+            box-shadow: 3px 3px 0px rgba(0,0,0,0.2);
+        }
+        button:active { transform: scale(0.95); }
+        button.ghost { background-color: transparent; border-color: #fff; box-shadow: none; }
+        
+        .forgot-btn {
+            background: transparent; color: #555; border: none; box-shadow: none; padding: 5px; margin-top: 5px; font-size: 0.8rem; text-decoration: underline; text-transform: none;
+        }
+        .forgot-btn:hover { color: var(--alert); background: transparent; }
+
+        /* --- SLIDER OVERLAY --- */
+        .overlay-container {
+            position: absolute; top: 0; left: 50%; width: 50%; height: 100%; overflow: hidden; transition: transform 0.6s ease-in-out; z-index: 100;
+        }
+        .overlay {
+            background: linear-gradient(to right, #000, #222); color: #ffffff; position: relative; left: -100%; height: 100%; width: 200%; transform: translateX(0); transition: transform 0.6s ease-in-out;
+        }
+        .overlay-panel {
+            position: absolute; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 0 40px; text-align: center; top: 0; height: 100%; width: 50%; transform: translateX(0); transition: transform 0.6s ease-in-out;
+        }
+        .overlay-left { transform: translateX(-20%); }
+        .overlay-right { right: 0; transform: translateX(0); }
+
+        .container.right-panel-active .overlay-container { transform: translateX(-100%); }
+        .container.right-panel-active .overlay { transform: translateX(50%); }
+        .container.right-panel-active .overlay-left { transform: translateX(0); }
+        .container.right-panel-active .overlay-right { transform: translateX(20%); }
+        .container.right-panel-active .sign-in-container { transform: translateX(100%); }
+        .container.right-panel-active .sign-up-container { transform: translateX(100%); opacity: 1; z-index: 5; animation: show 0.6s; }
+
+        @keyframes show { 0%, 49.99% { opacity: 0; z-index: 1; } 50%, 100% { opacity: 1; z-index: 5; } }
+        @keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-5px);} 75% {transform: translateX(5px);} }
+        .shake-error { animation: shake 0.3s ease-in-out; border-color: var(--alert); }
+
+
+        /* --- 3D SLOT MACHINE & WELCOME OVERLAY --- */
+        #welcome-message {
+            display: none; /* Flex when active */
+            background: rgba(255, 255, 255, 0.98);
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 200;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* The viewport for the 3D wheel */
+        .slot-viewport {
+            width: 400px;
+            height: 100px; /* This is the "window" we see */
+            position: relative;
+            overflow: hidden;
+            perspective: 1000px; /* Creates the 3D depth */
+            margin-bottom: 40px;
+            border-top: 5px solid #000;
+            border-bottom: 5px solid #000;
+            background: #f0f0f0;
+        }
+
+        /* Shadows to make it look round */
+        .slot-viewport::before {
+            content:''; position: absolute; top:0; left:0; width:100%; height:20px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.4), transparent);
+            z-index: 5; pointer-events: none;
+        }
+        .slot-viewport::after {
+            content:''; position: absolute; bottom:0; left:0; width:100%; height:20px;
+            background: linear-gradient(to top, rgba(0,0,0,0.4), transparent);
+            z-index: 5; pointer-events: none;
+        }
+
+        /* The spinning cylinder */
+        .slot-reel {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            transform-style: preserve-3d;
+            transition: transform 3s cubic-bezier(0.1, 1, 0.2, 1); /* Ease-out landing */
+        }
+
+        /* Individual Panels on the wheel */
+        .reel-panel {
+            position: absolute;
+            width: 100%;
+            height: 100px; /* Match viewport height */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            border-bottom: 1px solid #ddd;
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: #333;
+            backface-visibility: hidden; /* Hide back for cleaner look */
+        }
+
+        /* Highlight the winning panel */
+        .reel-panel.winner {
+            color: var(--accent);
+            text-shadow: 2px 2px 0px #000;
+        }
+
+        #welcome-text {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--primary);
+            max-width: 80%;
+            line-height: 1.5;
+            min-height: 60px;
+        }
+        .typing-cursor::after { content: '|'; animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+    </style>
+</head>
+<body>
+
+    <div class="nit-bg-container" id="bgContainer"></div>
+
+    <div class="container" id="container">
+        
+        <div class="form-container sign-up-container">
+            <form id="signup-form" onsubmit="handleSmartSignUp(event)">
+                <h1 style="font-size: 1.5rem;">Identify Yourself</h1>
+                <span>System will auto-detect credentials</span>
+                
+                <input type="text" id="su-name" placeholder="Full Name" required />
+                <input type="email" id="su-email" placeholder="Email (College or Personal)" required oninput="checkEmailProvider(this)" />
+                <input type="password" id="su-pass" placeholder="Create Password" required />
+                <input type="password" id="su-pass-confirm" placeholder="Confirm Password" required />
+
+                <div id="external-fields">
+                    <span style="color: var(--alert); font-weight:bold;">⚠️ Non-NIT Network Detected</span>
+                    <input type="text" id="su-ext-college" placeholder="Your College / Org Name">
+                    <input type="number" id="su-ext-age" placeholder="Age">
+                    <input type="text" id="su-ext-city" placeholder="City / Address">
+                </div>
+                
+                <button type="submit">Initialize Uplink</button>
+            </form>
+        </div>
+
+        <div class="form-container sign-in-container">
+            <form onsubmit="handleSignIn(event)">
+                <h1>Welcome Back</h1>
+                <span>Enter credentials to access the grid</span>
+                <input type="text" placeholder="Username / Email" />
+                <input type="password" placeholder="Password" />
+                <button type="button" class="forgot-btn" onclick="alert('Reset link sent to your registered neural-link!')">Forgot Password?</button>
+                <button type="submit" style="margin-top: 20px;">Sign In</button>
+            </form>
+        </div>
+
+        <div class="overlay-container">
+            <div class="overlay">
+                <div class="overlay-panel overlay-left">
+                    <h1>Already Verified?</h1>
+                    <p>Access your existing NITRO frequency</p>
+                    <button class="ghost" id="signIn">Sign In</button>
+                </div>
+                <div class="overlay-panel overlay-right">
+                    <h1>New Student?</h1>
+                    <p>Enter your NIT ID or Guest Email to join the network</p>
+                    <button class="ghost" id="signUp">Sign Up</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="welcome-message">
+            <h2 style="margin-bottom: 20px;">DETECTING ORIGIN...</h2>
+            
+            <div class="slot-viewport">
+                <div class="slot-reel" id="reel">
+                    </div>
+            </div>
+
+            <p id="welcome-text" class="typing-cursor"></p>
+        </div>
+
+    </div>
+
+    <script>
+        // --- ANIMATION & SLIDER LOGIC ---
+        const signUpButton = document.getElementById('signUp');
+        const signInButton = document.getElementById('signIn');
+        const container = document.getElementById('container');
+
+        signUpButton.addEventListener('click', () => container.classList.add("right-panel-active"));
+        signInButton.addEventListener('click', () => container.classList.remove("right-panel-active"));
+
+        // Floating Background Text
+        const nits = ["NIT TRICHY", "NIT WARANGAL", "NIT SURATHKAL", "NIT CALICUT", "NIT JALANDHAR", "MNIT JAIPUR", "VNIT NAGPUR"];
+        const bgContainer = document.getElementById('bgContainer');
+        function createFloatingNIT() {
+            const el = document.createElement('div');
+            el.classList.add('floating-nit');
+            el.innerText = nits[Math.floor(Math.random() * nits.length)];
+            el.style.left = Math.random() * 90 + '%';
+            el.style.animationDuration = (Math.random() * 10 + 10) + 's';
+            bgContainer.appendChild(el);
+            setTimeout(() => { el.remove(); }, 20000);
+        }
+        setInterval(createFloatingNIT, 800);
+        for(let i=0; i<5; i++) createFloatingNIT();
+
+        // --- DATA DICTIONARIES ---
+        const branchMap = {
+            'bt': 'Biotechnology', 'sc': 'Computer Science', 'cs': 'Computer Science', 'cse': 'Computer Science',
+            'ec': 'Electronics & Communication', 'ece': 'Electronics & Communication', 'ds': 'Data Science',
+            'tt': 'Textile Technology', 'me': 'Mechanical Engineering', 'ee': 'Electrical Engineering',
+            'ce': 'Civil Engineering', 'ice': 'Instrumentation & Control', 'ch': 'Chemical Engineering',
+            'ip': 'Industrial & Production'
+        };
+
+        const collegeMap = {
+            'nitj': 'NIT Jalandhar', 'nitt': 'NIT Trichy', 'nitw': 'NIT Warangal', 'nitk': 'NIT Surathkal',
+            'mnit': 'MNIT Jaipur', 'mnnit': 'MNNIT Allahabad', 'nitr': 'NIT Rourkela', 'nitc': 'NIT Calicut',
+            'nitp': 'NIT Patna', 'nitrr': 'NIT Raipur', 'nits': 'NIT Silchar', 'nith': 'NIT Hamirpur',
+            'nitkkr': 'NIT Kurukshetra', 'vnit': 'VNIT Nagpur', 'svnit': 'SVNIT Surat'
+        };
+
+        // --- REAL-TIME EMAIL CHECKER ---
+        let isExternalUser = false;
+        function checkEmailProvider(input) {
+            const email = input.value.toLowerCase();
+            const extFields = document.getElementById('external-fields');
+            let looksLikeNIT = false;
+
+            if (email.includes('.nit') || email.includes('.ac.in')) looksLikeNIT = true;
+            
+            const parts = email.split('@');
+            if (parts.length > 1) {
+                const domain = parts[1].split('.')[0];
+                if (collegeMap[domain]) looksLikeNIT = true;
+            }
+
+            if (email.includes('@') && email.includes('.') && !looksLikeNIT) {
+                extFields.style.display = 'block';
+                isExternalUser = true;
+            } else {
+                extFields.style.display = 'none';
+                isExternalUser = false;
+            }
+        }
+
+        // --- 3D SLOT MACHINE LOGIC ---
+        function setupAndSpinWheel(winningCollege, callback) {
+            const reel = document.getElementById('reel');
+            reel.innerHTML = ''; // Clear previous
+
+            // List of random colleges to fill the reel
+            const fillers = ["IIT Bombay", "BITS Pilani", "NIT Delhi", "DTU", "NSUT", "IIIT Hyderabad", "NIT Goa", "NIT Sikkim"];
+            
+            // We create 12 panels
+            const panelCount = 12;
+            const theta = 360 / panelCount;
+            // Radius calculation: r = (panelHeight / 2) / tan(theta/2)
+            // panelHeight = 100px.
+            const radius = Math.round( (100 / 2) / Math.tan( (Math.PI / panelCount) ) );
+
+            // Place the winning college at home 8 (arbitrary, ensures it spins a bit)
+            const winnerhome = 8;
+
+            for (let i = 0; i < panelCount; i++) {
+                const panel = document.createElement('div');
+                panel.className = 'reel-panel';
+                
+                // Determine text
+                if (i === winnerhome) {
+                    panel.innerText = winningCollege;
+                    panel.classList.add('winner');
+                } else {
+                    panel.innerText = fillers[i % fillers.length];
+                }
+
+                // Apply 3D position
+                const angle = theta * i;
+                panel.style.transform = `rotateX(${angle}deg) translateZ(${radius}px)`;
+                reel.appendChild(panel);
+            }
+
+            // SPIN LOGIC
+            // We want to land on 'winnerhome'.
+            // The rotation needs to be negative to spin "downwards" (like a slot machine).
+            // We add 3 full spins (360 * 3) for effect.
+            // Target Rotation = - (winnerhome * theta) - (360 * 3)
+            
+            const targetRotation = - (winnerhome * theta) - (360 * 3);
+
+            // Wait a tiny bit for render, then spin
+            setTimeout(() => {
+                reel.style.transform = `rotateX(${targetRotation}deg)`;
+            }, 100);
+
+            // Callback after animation ends (3s matches CSS transition)
+            setTimeout(callback, 3000);
+        }
+
+
+        // --- MAIN SIGN UP HANDLER ---
+        function handleSmartSignUp(e) {
+            e.preventDefault();
+            const name = document.getElementById('su-name').value;
+            const email = document.getElementById('su-email').value.toLowerCase();
+            const pass = document.getElementById('su-pass');
+            const passConfirm = document.getElementById('su-pass-confirm');
+
+            if (pass.value !== passConfirm.value) {
+                alert("ACCESS DENIED: Passwords do not match.");
+                pass.classList.add('shake-error'); passConfirm.classList.add('shake-error');
+                setTimeout(() => { pass.classList.remove('shake-error'); passConfirm.classList.remove('shake-error'); }, 500);
+                return;
+            }
+
+            // 1. DETERMINE USER DETAILS
+            let detectedCollege = "";
+            let detectedBranch = "";
+            let sentence = "";
+
+            if (isExternalUser) {
+                const extCollege = document.getElementById('su-ext-college').value || "Unknown Institute";
+                const extCity = document.getElementById('su-ext-city').value || "Unknown Location";
+                detectedCollege = extCollege;
+                detectedBranch = "Guest Access";
+                sentence = `Welcome, Agent ${name}. Identity confirmed as Guest Operative from ${extCollege}, ${extCity}. Access granted to the Grid.`;
+            } else {
+                detectedCollege = "NIT Network"; // Default
+                detectedBranch = "General Engineering";
+                try {
+                    const parts = email.split('@');
+                    const localPart = parts[0]; 
+                    const domainPart = parts[1];
+                    const collegeCode = domainPart.split('.')[0]; 
+                    if (collegeMap[collegeCode]) detectedCollege = collegeMap[collegeCode];
+
+                    const localSegments = localPart.split('.');
+                    for (let seg of localSegments) {
+                        if (branchMap[seg]) { detectedBranch = branchMap[seg]; break; }
+                    }
+                } catch (err) {}
+                sentence = `Identity Verified: ${name}. Specialization: ${detectedBranch}. Initializing workstation for ${detectedCollege}...`;
+            }
+
+            // Save Data
+            localStorage.setItem("nitro_user", name);
+            localStorage.setItem("nitro_college", detectedCollege);
+            localStorage.setItem("nitro_branch", detectedBranch);
+
+            // 2. SHOW OVERLAY & SPIN WHEEL
+            document.getElementById('welcome-message').style.display = 'flex';
+            
+            // Spin the wheel!
+            setupAndSpinWheel(detectedCollege, () => {
+                // This runs AFTER the wheel stops
+                
+                // 3. TYPE WRITER EFFECT
+                const welcomeText = document.getElementById('welcome-text');
+                let i = 0;
+                function typeWriter() {
+                    if (i < sentence.length) {
+                        welcomeText.innerHTML += sentence.charAt(i);
+                        i++;
+                        setTimeout(typeWriter, 30);
+                    } else {
+                        // Redirect after reading
+                        setTimeout(() => {
+                            window.location.href = "home.html";
+                        }, 2000);
+                    }
+                }
+                typeWriter();
+            });
+        }
+
+        function handleSignIn(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.innerText = "AUTHENTICATING...";
+            btn.style.backgroundColor = "#00b894";
+            setTimeout(() => { window.location.href = "home.html"; }, 1000);
+        }
+    </script>
+</body>
+</html>

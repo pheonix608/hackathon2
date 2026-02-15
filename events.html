@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NITRO | Event Hype</title>
+    <style>
+        :root {
+            --bg-color: #1e272e;
+            --card-bg: #2d3436;
+            --text-main: #d2dae2;
+            --accent: #0be881; /* Neon Green */
+            --fire: #ff3f34;    /* Hot Red */
+            --gold: #ffa801;    /* Rank 1 Gold */
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Courier New', monospace; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 40px;
+            display: flex;
+            gap: 40px;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- LEFT PANEL: EVENTS --- */
+        .events-panel {
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .header-title {
+            font-size: 2rem;
+            font-weight: 900;
+            color: #fff;
+            text-transform: uppercase;
+            line-height: 1;
+            margin-bottom: 20px;
+            border-left: 5px solid var(--accent);
+            padding-left: 15px;
+        }
+
+        .event-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.3s;
+            border: 1px solid transparent;
+            opacity: 0.6;
+        }
+
+        .event-card:hover { transform: translateX(10px); opacity: 1; }
+        
+        .event-card.active {
+            background: #fff;
+            color: #000;
+            border-left: 10px solid var(--accent);
+            opacity: 1;
+            box-shadow: 0 0 20px rgba(11, 232, 129, 0.4);
+        }
+
+        .event-date { font-size: 0.8rem; font-weight: bold; opacity: 0.7; }
+        .event-name { font-size: 1.2rem; font-weight: 900; margin: 5px 0; }
+
+        /* --- RIGHT PANEL: LEADERBOARD --- */
+        .voting-panel {
+            flex: 1;
+            background: rgba(0,0,0,0.3);
+            border-radius: 20px;
+            padding: 30px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #555;
+            padding-bottom: 15px;
+        }
+
+        .add-song-btn {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--accent);
+            transition: 0.2s;
+        }
+        .add-song-btn:hover { transform: scale(1.1); background: #fff; }
+
+        /* SONG LIST ITEMS */
+        .song-item {
+            display: flex;
+            align-items: center;
+            background: var(--card-bg);
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 10px;
+            transition: 0.3s ease-out; /* Smooth reorder animation */
+            border: 1px solid #444;
+            position: relative;
+        }
+
+        /* Rank #1 Styling */
+        .song-item:first-child {
+            background: linear-gradient(45deg, #ffd32a, #fffa65);
+            color: #000;
+            transform: scale(1.02);
+            border: none;
+            box-shadow: 0 5px 15px rgba(255, 211, 42, 0.4);
+        }
+        .song-item:first-child .rank-num { color: #000; font-size: 2rem; }
+        .song-item:first-child .vote-count { color: #000; }
+        .song-item:first-child button { background: #000; color: #ffd32a; }
+
+        .rank-num {
+            font-size: 1.5rem;
+            font-weight: 900;
+            width: 50px;
+            color: #666;
+        }
+
+        .song-info { flex: 1; }
+        .song-title { font-weight: bold; font-size: 1.1rem; }
+        .song-artist { font-size: 0.9rem; opacity: 0.8; }
+
+        .vote-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .vote-count {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        .vote-btn {
+            background: transparent;
+            border: 2px solid var(--accent);
+            color: var(--accent);
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex; align-items: center; justify-content: center;
+            transition: 0.1s;
+        }
+
+        .vote-btn:active { transform: scale(0.9); background: var(--accent); color: #000; }
+        .vote-btn:hover { background: rgba(11, 232, 129, 0.2); }
+
+        /* BACK BUTTON */
+        .back-link {
+            position: absolute; top: 20px; right: 20px;
+            text-decoration: none; color: #fff; border: 1px solid #fff;
+            padding: 5px 10px; font-size: 0.8rem; opacity: 0.5;
+        }
+        .back-link:hover { opacity: 1; background: #fff; color: #000; }
+
+        /* PROGRESS BAR FOR #1 */
+        .trending-badge {
+            position: absolute; top: -10px; right: 10px;
+            background: var(--fire); color: white; padding: 2px 8px;
+            font-size: 0.7rem; font-weight: bold; border-radius: 4px;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="back-link">← BACK TO GRID</a>
+
+    <div class="events-panel">
+        <div class="header-title">Campus<br>Hype<br>Meter</div>
+        
+        <div class="event-card active" onclick="loadEvent(0)">
+            <div class="event-date">MAR 15 • AUDITORIUM</div>
+            <div class="event-name">Freshers Night '26</div>
+            <div style="font-size: 0.8rem;">🔥 1,204 Votes</div>
+        </div>
+
+        <div class="event-card" onclick="loadEvent(1)">
+            <div class="event-date">APR 02 • STADIUM</div>
+            <div class="event-name">Inter-NIT Sports</div>
+            <div style="font-size: 0.8rem;">⚡ 856 Votes</div>
+        </div>
+
+        <div class="event-card" onclick="loadEvent(2)">
+            <div class="event-date">APR 20 • OAT</div>
+            <div class="event-name">Farewell Party</div>
+            <div style="font-size: 0.8rem;">❤️ 320 Votes</div>
+        </div>
+    </div>
+
+    <div class="voting-panel">
+        <div class="panel-header">
+            <h2 id="current-event-title">Freshers Night Playlist</h2>
+            <button class="add-song-btn" onclick="addSong()">+ Suggest Song</button>
+        </div>
+
+        <div id="song-list">
+            </div>
+    </div>
+
+    <script>
+        // --- DATA ---
+        // Different playlists for different events
+        const eventPlaylists = [
+            [ // Freshers
+                { id: 1, title: "Party Rock Anthem", artist: "LMFAO", votes: 450 },
+                { id: 2, title: "Desi Girl", artist: "Dostana", votes: 420 },
+                { id: 3, title: "Starboy", artist: "The Weeknd", votes: 380 },
+                { id: 4, title: "Ilahi", artist: "Yeh Jawaani Hai Deewani", votes: 310 },
+                { id: 5, title: "Shape of You", artist: "Ed Sheeran", votes: 200 }
+            ],
+            [ // Sports
+                { id: 1, title: "Believer", artist: "Imagine Dragons", votes: 500 },
+                { id: 2, title: "Chak De India", artist: "Sukhwinder Singh", votes: 480 },
+                { id: 3, title: "Eye of the Tiger", artist: "Survivor", votes: 300 }
+            ],
+            [ // Farewell
+                { id: 1, title: "See You Again", artist: "Wiz Khalifa", votes: 600 },
+                { id: 2, title: "Yaaron", artist: "KK", votes: 590 },
+                { id: 3, title: "Memories", artist: "Maroon 5", votes: 400 }
+            ]
+        ];
+
+        let currentEventIndex = 0;
+
+        // --- RENDER FUNCTIONS ---
+        function renderSongs() {
+            const listContainer = document.getElementById('song-list');
+            listContainer.innerHTML = ''; // Clear current list
+
+            // Sort songs by votes (Highest first)
+            const currentList = eventPlaylists[currentEventIndex];
+            currentList.sort((a, b) => b.votes - a.votes);
+
+            currentList.forEach((song, index) => {
+                const rank = index + 1;
+                
+                const div = document.createElement('div');
+                div.className = 'song-item';
+                
+                // Special Badge for Rank 1
+                let trendingHTML = rank === 1 ? '<div class="trending-badge">CURRENT #1</div>' : '';
+
+                div.innerHTML = `
+                    <div class="rank-num">#${rank}</div>
+                    <div class="song-info">
+                        <div class="song-title">${song.title} ${trendingHTML}</div>
+                        <div class="song-artist">${song.artist}</div>
+                    </div>
+                    <div class="vote-section">
+                        <div class="vote-count" id="vote-count-${song.id}">${song.votes}</div>
+                        <button class="vote-btn" onclick="upvote(${song.id})">▲</button>
+                    </div>
+                `;
+                listContainer.appendChild(div);
+            });
+        }
+
+        // --- INTERACTION ---
+        function loadEvent(index) {
+            currentEventIndex = index;
+            
+            // Update UI Cards
+            const cards = document.querySelectorAll('.event-card');
+            cards.forEach(c => c.classList.remove('active'));
+            cards[index].classList.add('active');
+
+            // Update Header
+            const titles = ["Freshers Night Playlist", "Sports Meet Anthems", "Farewell Vibes"];
+            document.getElementById('current-event-title').innerText = titles[index];
+
+            renderSongs();
+        }
+
+        function upvote(songId) {
+            // Find song and increment
+            const song = eventPlaylists[currentEventIndex].find(s => s.id === songId);
+            if(song) {
+                song.votes += 1; // Increment logic
+                
+                // Add a little randomness to make the demo look alive
+                // (Sometimes add 10 votes to make it jump faster for demo)
+                if(Math.random() > 0.7) song.votes += 5; 
+
+                renderSongs(); // Re-sort and re-render immediately
+            }
+        }
+
+        function addSong() {
+            const name = prompt("Enter song name:");
+            if(name) {
+                const newSong = {
+                    id: Date.now(), // Random ID
+                    title: name,
+                    artist: "Student Request",
+                    votes: 1 // Start with 1 vote
+                };
+                eventPlaylists[currentEventIndex].push(newSong);
+                renderSongs();
+            }
+        }
+
+        // Initial Load
+        renderSongs();
+
+    </script>
+</body>
+</html>
